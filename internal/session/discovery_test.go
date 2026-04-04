@@ -93,6 +93,10 @@ func TestDetectToolFromName(t *testing.T) {
 		{"Gemini mixed case", "Gemini-AI", "gemini"},
 		{"OpenCode", "opencode-session", "opencode"},
 		{"Codex", "codex-test", "codex"},
+		{"CodeBuddy exact", "codebuddy-session", "codebuddy"},
+		{"CodeBuddy uppercase", "CodeBuddy-AI", "codebuddy"},
+		{"AgentCli exact", "agentcli-test", "codebuddy"},
+		{"AgentCli mixed case", "AgentCli-Session", "codebuddy"},
 		{"Unknown", "random-session", "shell"},
 	}
 

@@ -104,7 +104,7 @@ type dialogSnapshot struct {
 // buildPresetCommands returns the list of commands for the picker,
 // including any custom tools from config.toml.
 func buildPresetCommands() []string {
-	presets := []string{"", "claude", "gemini", "opencode", "codex", "pi"}
+	presets := []string{"", "claude", "gemini", "opencode", "codex", "pi", "codebuddy"}
 	if customTools := session.GetCustomToolNames(); len(customTools) > 0 {
 		presets = append(presets, customTools...)
 	}

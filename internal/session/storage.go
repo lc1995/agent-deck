@@ -73,6 +73,10 @@ type InstanceData struct {
 	CodexSessionID  string    `json:"codex_session_id,omitempty"`
 	CodexDetectedAt time.Time `json:"codex_detected_at,omitempty"`
 
+	// CodeBuddy session (persisted for resume after app restart)
+	CodeBuddySessionID  string    `json:"codebuddy_session_id,omitempty"`
+	CodeBuddyDetectedAt time.Time `json:"codebuddy_detected_at,omitempty"`
+
 	// Latest user input for context
 	LatestPrompt string `json:"latest_prompt,omitempty"`
 	Notes        string `json:"notes,omitempty"`
@@ -292,6 +296,7 @@ func (s *Storage) SaveWithGroups(instances []*Instance, groupTree *GroupTree) er
 			inst.GeminiYoloMode, inst.GeminiModel,
 			inst.OpenCodeSessionID, inst.OpenCodeDetectedAt,
 			inst.CodexSessionID, inst.CodexDetectedAt,
+			inst.CodeBuddySessionID, inst.CodeBuddyDetectedAt,
 			inst.LatestPrompt, inst.Notes, inst.LoadedMCPNames,
 			inst.ToolOptionsJSON,
 			sandboxJSON, inst.SandboxContainer,
@@ -436,6 +441,7 @@ func (s *Storage) LoadLite() ([]*InstanceData, []*GroupData, error) {
 			geminiYolo, geminiModel,
 			opencodeSID, opencodeAt,
 			codexSID, codexAt,
+			codebuddySID, codebuddyAt,
 			latestPrompt, notes, loadedMCPs,
 			toolOpts,
 			sandboxJSON, sandboxContainer,
@@ -467,11 +473,13 @@ func (s *Storage) LoadLite() ([]*InstanceData, []*GroupData, error) {
 			GeminiDetectedAt:   geminiAt,
 			GeminiYoloMode:     geminiYolo,
 			GeminiModel:        geminiModel,
-			OpenCodeSessionID:  opencodeSID,
-			OpenCodeDetectedAt: opencodeAt,
-			CodexSessionID:     codexSID,
-			CodexDetectedAt:    codexAt,
-			LatestPrompt:       latestPrompt,
+			OpenCodeSessionID:   opencodeSID,
+			OpenCodeDetectedAt:  opencodeAt,
+			CodexSessionID:      codexSID,
+			CodexDetectedAt:     codexAt,
+			CodeBuddySessionID:  codebuddySID,
+			CodeBuddyDetectedAt: codebuddyAt,
+			LatestPrompt:        latestPrompt,
 			Notes:              notes,
 			ToolOptionsJSON:    toolOpts,
 			LoadedMCPNames:     loadedMCPs,
@@ -532,6 +540,7 @@ func (s *Storage) LoadWithGroups() ([]*Instance, []*GroupData, error) {
 			geminiYolo, geminiModel,
 			opencodeSID, opencodeAt,
 			codexSID, codexAt,
+			codebuddySID, codebuddyAt,
 			latestPrompt, notes, loadedMCPs,
 			toolOpts,
 			sandboxJSON, sandboxContainer,
@@ -563,11 +572,13 @@ func (s *Storage) LoadWithGroups() ([]*Instance, []*GroupData, error) {
 			GeminiDetectedAt:   geminiAt,
 			GeminiYoloMode:     geminiYolo,
 			GeminiModel:        geminiModel,
-			OpenCodeSessionID:  opencodeSID,
-			OpenCodeDetectedAt: opencodeAt,
-			CodexSessionID:     codexSID,
-			CodexDetectedAt:    codexAt,
-			LatestPrompt:       latestPrompt,
+			OpenCodeSessionID:   opencodeSID,
+			OpenCodeDetectedAt:  opencodeAt,
+			CodexSessionID:      codexSID,
+			CodexDetectedAt:     codexAt,
+			CodeBuddySessionID:  codebuddySID,
+			CodeBuddyDetectedAt: codebuddyAt,
+			LatestPrompt:        latestPrompt,
 			Notes:              notes,
 			ToolOptionsJSON:    toolOpts,
 			LoadedMCPNames:     loadedMCPs,
@@ -767,9 +778,11 @@ func (s *Storage) convertToInstances(data *StorageData) ([]*Instance, []*GroupDa
 			GeminiModel:        instData.GeminiModel,
 			OpenCodeSessionID:  instData.OpenCodeSessionID,
 			OpenCodeDetectedAt: instData.OpenCodeDetectedAt,
-			CodexSessionID:     instData.CodexSessionID,
-			CodexDetectedAt:    instData.CodexDetectedAt,
-			ToolOptionsJSON:    instData.ToolOptionsJSON,
+			CodexSessionID:      instData.CodexSessionID,
+			CodexDetectedAt:     instData.CodexDetectedAt,
+			CodeBuddySessionID:  instData.CodeBuddySessionID,
+			CodeBuddyDetectedAt: instData.CodeBuddyDetectedAt,
+			ToolOptionsJSON:     instData.ToolOptionsJSON,
 			LatestPrompt:       instData.LatestPrompt,
 			Notes:              instData.Notes,
 			LoadedMCPNames:     instData.LoadedMCPNames,

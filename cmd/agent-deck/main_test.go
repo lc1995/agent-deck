@@ -177,3 +177,31 @@ func TestIsDuplicateSession(t *testing.T) {
 		})
 	}
 }
+
+// TestDetectTool_CodeBuddy tests the detectTool function for CodeBuddy/AgentCli detection
+func TestDetectTool_CodeBuddy(t *testing.T) {
+	tests := []struct {
+		name     string
+		cmd      string
+		expected string
+	}{
+		{"codebuddy exact", "codebuddy", "codebuddy"},
+		{"codebuddy with args", "codebuddy --help", "codebuddy"},
+		{"cbc shorthand", "cbc", "codebuddy"},
+		{"agentcli", "agentcli", "codebuddy"},
+		{"CodeBuddy case insensitive", "CodeBuddy", "codebuddy"},
+		{"AGENTCLI case insensitive", "AGENTCLI", "codebuddy"},
+		{"claude still works", "claude", "claude"},
+		{"gemini still works", "gemini", "gemini"},
+		{"unknown tool", "some-tool", "shell"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := detectTool(tt.cmd)
+			if result != tt.expected {
+				t.Errorf("detectTool(%q) = %q, want %q", tt.cmd, result, tt.expected)
+			}
+		})
+	}
+}

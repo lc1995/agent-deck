@@ -6314,6 +6314,8 @@ func (h *Home) createSessionInGroupWithWorktreeAndOptions(
 			tool = "codex"
 		case "opencode":
 			tool = "opencode"
+		case "codebuddy", "cbc":
+			tool = "codebuddy"
 		default:
 			// Check custom tools: tool identity stays as the custom name (e.g. "glm")
 			// so config lookup works, but command resolves to the actual binary (e.g. "claude")
@@ -9686,6 +9688,13 @@ func (h *Home) renderLaunchingState(inst *session.Instance, width int, startTime
 			toolDesc = "Resuming OpenCode session..."
 		} else {
 			toolDesc = "Starting OpenCode..."
+		}
+	case "codebuddy":
+		toolName = "CodeBuddy"
+		if isResuming {
+			toolDesc = "Resuming CodeBuddy session..."
+		} else {
+			toolDesc = "Starting CodeBuddy..."
 		}
 	default:
 		toolName = "Shell"

@@ -62,6 +62,9 @@ func (d *PromptDetector) HasPrompt(content string) bool {
 	case "gemini":
 		return d.hasGeminiPrompt(content)
 
+	case "codebuddy":
+		return d.hasCodeBuddyPrompt(content)
+
 	case "codex":
 		// Codex/OpenAI CLI patterns.
 		// Busy indicators take priority over prompt markers.
@@ -326,6 +329,102 @@ func (d *PromptDetector) hasClaudePrompt(content string) bool {
 			if cleanLine == ">" || cleanLine == "> " || cleanLine == "❯" || cleanLine == "❯ " {
 				return true
 			}
+		}
+	}
+
+	return false
+}
+
+// hasCodeBuddyPrompt detects if CodeBuddy is waiting for input.
+// CodeBuddy uses a simple "> " prompt or shows "Kimi" in the interface.
+func (d *PromptDetector) hasCodeBuddyPrompt(content string) bool {
+	lines := strings.Split(content, "\n")
+	var lastLines []string
+	for i := len(lines) - 1; i >= 0 && len(lastLines) < 15; i-- {
+		line := strings.TrimSpace(lines[i])
+		if line != "" {
+			lastLines = append([]string{line}, lastLines...)
+		}
+	}
+
+	recentContent := strings.ToLower(strings.Join(lastLines, "\n"))
+
+	// ═══════════════════════════════════════════════════════════════════════
+	// BUSY indicators (if these are present, CodeBuddy is NOT waiting)
+	// ═══════════════════════════════════════════════════════════════════════
+	busyIndicators := []string{"thinking", "generating", "processing", "analyzing"}
+	for _, indicator := range busyIndicators {
+		if strings.Contains(recentContent, indicator) {
+			return false
+		}
+	}
+
+	// ═══════════════════════════════════════════════════════════════════════
+	// WAITING indicators - Permission/Confirmation dialogs
+	// CodeBuddy shows various permission request dialogs that need user input
+	// ═══════════════════════════════════════════════════════════════════════
+	permissionPrompts := []string{
+		// Confirmation dialogs (from user screenshot)
+		"Confirm",
+		"确认", // Chinese for Confirm
+		// Yes/No options
+		"Yes",
+		"No",
+		"是",
+		"否",
+		// Allow/Deny options
+		"Allow",
+		"Deny",
+		"允许",
+		"拒绝",
+		// Selection indicators with common markers
+		"> Yes",
+		"> No",
+		"> Allow",
+		"> Deny",
+		"❯ Yes",
+		"❯ No",
+		"❯ Allow",
+		"❯ Deny",
+		// Permission request patterns
+		"Request",
+		"Permission",
+		"Authorize",
+		// Action required patterns
+		"Action Required",
+		"Waiting for confirmation",
+		"Press",
+		"Enter to",
+		// CodeBuddy specific patterns
+		"codebuddy",
+		"AgentCli",
+	}
+	contentLower := strings.ToLower(content)
+	for _, prompt := range permissionPrompts {
+		if strings.Contains(contentLower, strings.ToLower(prompt)) {
+			return true
+		}
+	}
+
+	// ═══════════════════════════════════════════════════════════════════════
+	// Standard prompt patterns
+	// ═══════════════════════════════════════════════════════════════════════
+	for _, line := range lastLines {
+		clean := strings.TrimSpace(StripANSI(line))
+
+		// CodeBuddy shows "> " when waiting for input
+		if clean == ">" || clean == "> " {
+			return true
+		}
+
+		// Also check for "> " at the start of a line (user typing)
+		if strings.HasPrefix(clean, "> ") && len(clean) < 200 {
+			return true
+		}
+
+		// Check for "Kimi" in the line (CodeBuddy shows "Kimi" in prompt)
+		if strings.Contains(clean, "Kimi") {
+			return true
 		}
 	}
 

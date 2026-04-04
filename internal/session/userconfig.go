@@ -70,6 +70,9 @@ type UserConfig struct {
 	// Codex defines Codex CLI integration settings
 	Codex CodexSettings `toml:"codex"`
 
+	// CodeBuddy defines CodeBuddy/AgentCli integration settings
+	CodeBuddy CodeBuddySettings `toml:"codebuddy"`
+
 	// Worktree defines git worktree preferences
 	Worktree WorktreeSettings `toml:"worktree"`
 
@@ -622,6 +625,18 @@ type CodexSettings struct {
 	// YoloMode enables --yolo flag for Codex sessions (bypass approvals and sandbox)
 	// Default: false
 	YoloMode bool `toml:"yolo_mode"`
+}
+
+// CodeBuddySettings defines CodeBuddy/AgentCli configuration
+type CodeBuddySettings struct {
+	// DefaultModel is the model to use for new CodeBuddy sessions
+	// If empty, CodeBuddy uses its own default
+	DefaultModel string `toml:"default_model"`
+
+	// EnvFile is a .env file specific to CodeBuddy sessions
+	// Sourced AFTER global [shell].env_files
+	// Path can be absolute, ~ for home, $HOME/${VAR} for env vars, or relative to session working directory
+	EnvFile string `toml:"env_file"`
 }
 
 // WorktreeSettings contains git worktree preferences.
@@ -1196,6 +1211,7 @@ func GetCustomToolNames() []string {
 	builtins := map[string]bool{
 		"claude": true, "gemini": true, "opencode": true,
 		"codex": true, "pi": true, "shell": true, "cursor": true, "aider": true,
+		"codebuddy": true,
 	}
 
 	var names []string
@@ -1232,6 +1248,8 @@ func GetToolIcon(toolName string) string {
 		return "π"
 	case "cursor":
 		return "📝"
+	case "codebuddy":
+		return "🔧"
 	case "shell":
 		return "🐚"
 	default:

@@ -118,6 +118,11 @@ type Instance struct {
 	// It is intentionally transient and never persisted.
 	pendingCodexRestartWarning string `json:"-"`
 
+	// CodeBuddy/AgentCli integration
+	CodeBuddySessionID  string    `json:"codebuddy_session_id,omitempty"`
+	CodeBuddyDetectedAt time.Time `json:"codebuddy_detected_at,omitempty"`
+	CodeBuddyStartedAt  int64     `json:"-"` // Unix millis when we started CodeBuddy (for session matching, not persisted)
+
 	// Latest user input for context (extracted from session files)
 	LatestPrompt      string    `json:"latest_prompt,omitempty"`
 	Notes             string    `json:"notes,omitempty"`
@@ -832,6 +837,26 @@ func (i *Instance) buildCodexCommand(baseCommand string) string {
 	}
 
 	// For custom commands (e.g., resume commands), preserve env propagation.
+	return envPrefix + baseCommand
+}
+
+// buildCodeBuddyCommand builds the command for CodeBuddy sessions
+func (i *Instance) buildCodeBuddyCommand(baseCommand string) string {
+	if i.Tool != "codebuddy" {
+		return baseCommand
+	}
+
+	envPrefix := i.buildEnvSourceCommand()
+	agentdeckEnvPrefix := fmt.Sprintf("AGENTDECK_INSTANCE_ID=%s AGENTDECK_TITLE=%q AGENTDECK_TOOL=%s ",
+		i.ID, i.Title, i.Tool)
+	envPrefix += agentdeckEnvPrefix
+
+	// If baseCommand is just "codebuddy", handle specially
+	if baseCommand == "codebuddy" || baseCommand == "cbc" {
+		return envPrefix + baseCommand
+	}
+
+	// For custom commands, preserve env propagation
 	return envPrefix + baseCommand
 }
 
@@ -1860,6 +1885,10 @@ func (i *Instance) Start() error {
 		command = i.buildCodexCommand(i.Command)
 		// Record start time for session ID detection (Unix millis)
 		i.CodexStartedAt = time.Now().UnixMilli()
+	case i.Tool == "codebuddy":
+		command = i.buildCodeBuddyCommand(i.Command)
+		// Record start time for session ID detection (Unix millis)
+		i.CodeBuddyStartedAt = time.Now().UnixMilli()
 	default:
 		// Check if this is a custom tool with session resume config
 		if toolDef := GetToolDef(i.Tool); toolDef != nil {
@@ -1976,6 +2005,9 @@ func (i *Instance) StartWithMessage(message string) error {
 	case i.Tool == "codex":
 		command = i.buildCodexCommand(i.Command)
 		i.CodexStartedAt = time.Now().UnixMilli()
+	case i.Tool == "codebuddy":
+		command = i.buildCodeBuddyCommand(i.Command)
+		i.CodeBuddyStartedAt = time.Now().UnixMilli()
 	default:
 		// Check if this is a custom tool with session resume config
 		if toolDef := GetToolDef(i.Tool); toolDef != nil {
@@ -2679,6 +2711,22 @@ func (i *Instance) UpdateHookStatus(status *HookStatus) {
 			if i.tmuxSession != nil && i.tmuxSession.Exists() {
 				_ = i.tmuxSession.SetEnvironment("GEMINI_SESSION_ID", sessionID)
 			}
+		}
+	case i.Tool == "codebuddy":
+		if sessionID == i.CodeBuddySessionID {
+			return
+		}
+		sessionLog.Debug("codebuddy_session_update_from_hook",
+			slog.String("old_id", i.CodeBuddySessionID),
+			slog.String("new_id", sessionID),
+			slog.String("event", status.Event),
+		)
+		i.CodeBuddySessionID = sessionID
+		i.CodeBuddyDetectedAt = time.Now()
+		i.hookSessionID = sessionID
+
+		if i.tmuxSession != nil && i.tmuxSession.Exists() {
+			_ = i.tmuxSession.SetEnvironment("CODEBUDDY_SESSION_ID", sessionID)
 		}
 	}
 }
@@ -3966,6 +4014,8 @@ func (i *Instance) Restart() error {
 		command = fmt.Sprintf("opencode -s %s", i.OpenCodeSessionID)
 	} else if i.Tool == "codex" && i.CodexSessionID != "" {
 		command = i.buildCodexCommand("codex")
+	} else if i.Tool == "codebuddy" && i.CodeBuddySessionID != "" {
+		command = i.buildCodeBuddyCommand("codebuddy")
 	} else {
 		// Route to appropriate command builder based on tool
 		switch {
@@ -3981,6 +4031,10 @@ func (i *Instance) Restart() error {
 			command = i.buildCodexCommand(i.Command)
 			// Record start time for async session ID detection
 			i.CodexStartedAt = time.Now().UnixMilli()
+		case i.Tool == "codebuddy":
+			command = i.buildCodeBuddyCommand(i.Command)
+			// Record start time for session tracking
+			i.CodeBuddyStartedAt = time.Now().UnixMilli()
 		default:
 			// Check if this is a custom tool with session resume config
 			if toolDef := GetToolDef(i.Tool); toolDef != nil {

@@ -1012,3 +1012,31 @@ inject_status_line = true
 		t.Error("GetInjectStatusLine should be true when set to true")
 	}
 }
+
+func TestGetToolIcon(t *testing.T) {
+	tests := []struct {
+		name     string
+		toolName string
+		expected string
+	}{
+		{"claude", "claude", "🤖"},
+		{"gemini", "gemini", "✨"},
+		{"opencode", "opencode", "🌐"},
+		{"codex", "codex", "💻"},
+		{"pi", "pi", "π"},
+		{"cursor", "cursor", "📝"},
+		{"codebuddy", "codebuddy", "🔧"},
+		{"shell", "shell", "🐚"},
+		{"unknown tool defaults to shell", "unknown", "🐚"},
+		{"empty string defaults to shell", "", "🐚"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := GetToolIcon(tt.toolName)
+			if result != tt.expected {
+				t.Errorf("GetToolIcon(%q) = %q, want %q", tt.toolName, result, tt.expected)
+			}
+		})
+	}
+}

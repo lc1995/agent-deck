@@ -2421,6 +2421,8 @@ func detectTool(cmd string) string {
 		return "codex"
 	case strings.Contains(cmd, "cursor"):
 		return "cursor"
+	case strings.Contains(cmd, "codebuddy") || strings.Contains(cmd, "agentcli") || cmd == "cbc":
+		return "codebuddy"
 	default:
 		return "shell"
 	}
