@@ -2685,3 +2685,31 @@ func TestBuildStatusBarArgs_InjectDisabled(t *testing.T) {
 	args := s.buildStatusBarArgs()
 	assert.Nil(t, args, "args should be nil when injectStatusLine is false")
 }
+
+func TestDetectToolFromCommand_CodeBuddy(t *testing.T) {
+	tests := []struct {
+		name     string
+		command  string
+		expected string
+	}{
+		{"codebuddy exact", "codebuddy", "codebuddy"},
+		{"codebuddy with path", "/usr/local/bin/codebuddy", "codebuddy"},
+		{"cbc shorthand", "cbc", "codebuddy"},
+		{"cbc with args", "cbc --help", "codebuddy"},
+		{"agentcli", "agentcli", "codebuddy"},
+		{"codebuddy in string", "codebuddy --model gpt-4", "codebuddy"},
+		{"claude still works", "claude", "claude"},
+		{"gemini still works", "gemini", "gemini"},
+		{"empty command", "", ""},
+		{"unknown command", "unknown-tool", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := detectToolFromCommand(tt.command)
+			if result != tt.expected {
+				t.Errorf("detectToolFromCommand(%q) = %q, want %q", tt.command, result, tt.expected)
+			}
+		})
+	}
+}

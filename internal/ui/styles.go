@@ -603,6 +603,8 @@ func ToolIcon(tool string) string {
 		return IconPi
 	case "cursor":
 		return "📝"
+	case "codebuddy":
+		return "🔧"
 	case "shell":
 		return IconShell
 	default:
@@ -626,6 +628,8 @@ func ToolColor(tool string) lipgloss.Color {
 		return ColorRed // Red for Aider
 	case "cursor":
 		return ColorAccent // Blue for Cursor
+	case "codebuddy":
+		return ColorOrange // Orange for CodeBuddy
 	default:
 		return ColorTextDim // Default gray
 	}

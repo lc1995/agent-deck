@@ -88,6 +88,29 @@ func DefaultRawPatterns(toolName string) *RawPatterns {
 			},
 			PromptPatterns: []string{`re:(?m)^\s*pi>\s*`},
 		}
+	case "codebuddy":
+		return &RawPatterns{
+			BusyPatterns: []string{
+				"thinking",
+				"generating",
+				"processing",
+				"analyzing",
+			},
+			PromptPatterns: []string{
+				"> ",
+				"codebuddy>",
+				"Kimi",
+				// Permission/confirmation dialogs
+				"Confirm",
+				"Yes",
+				"No",
+				"Allow",
+				"Deny",
+				"Permission",
+				"Request",
+				"Authorize",
+			},
+		}
 	case "shell":
 		return &RawPatterns{
 			PromptPatterns: []string{"$ ", "# ", "% "},

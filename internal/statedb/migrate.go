@@ -48,6 +48,9 @@ type jsonInstanceData struct {
 	CodexSessionID  string    `json:"codex_session_id,omitempty"`
 	CodexDetectedAt time.Time `json:"codex_detected_at,omitempty"`
 
+	CodeBuddySessionID  string    `json:"codebuddy_session_id,omitempty"`
+	CodeBuddyDetectedAt time.Time `json:"codebuddy_detected_at,omitempty"`
+
 	LatestPrompt     string          `json:"latest_prompt,omitempty"`
 	Notes            string          `json:"notes,omitempty"`
 	ToolOptionsJSON  json.RawMessage `json:"tool_options,omitempty"`
@@ -75,9 +78,11 @@ type toolDataBlob struct {
 	GeminiModel        string          `json:"gemini_model,omitempty"`
 	OpenCodeSessionID  string          `json:"opencode_session_id,omitempty"`
 	OpenCodeDetectedAt int64           `json:"opencode_detected_at,omitempty"`
-	CodexSessionID     string          `json:"codex_session_id,omitempty"`
-	CodexDetectedAt    int64           `json:"codex_detected_at,omitempty"`
-	LatestPrompt       string          `json:"latest_prompt,omitempty"`
+	CodexSessionID      string          `json:"codex_session_id,omitempty"`
+	CodexDetectedAt     int64           `json:"codex_detected_at,omitempty"`
+	CodeBuddySessionID  string          `json:"codebuddy_session_id,omitempty"`
+	CodeBuddyDetectedAt int64           `json:"codebuddy_detected_at,omitempty"`
+	LatestPrompt        string          `json:"latest_prompt,omitempty"`
 	Notes              string          `json:"notes,omitempty"`
 	LoadedMCPNames     []string        `json:"loaded_mcp_names,omitempty"`
 	ToolOptions        json.RawMessage `json:"tool_options,omitempty"`
@@ -210,6 +215,7 @@ func MarshalToolData(
 	geminiYoloMode *bool, geminiModel string,
 	openCodeSessionID string, openCodeDetectedAt time.Time,
 	codexSessionID string, codexDetectedAt time.Time,
+	codeBuddySessionID string, codeBuddyDetectedAt time.Time,
 	latestPrompt string, notes string, loadedMCPNames []string,
 	toolOptionsJSON json.RawMessage,
 	sandboxJSON json.RawMessage, sandboxContainer string,
@@ -218,23 +224,24 @@ func MarshalToolData(
 	multiRepoTempDir string, multiRepoWorktrees []MultiRepoWorktreeData,
 ) json.RawMessage {
 	td := toolDataBlob{
-		ClaudeSessionID:   claudeSessionID,
-		GeminiSessionID:   geminiSessionID,
-		GeminiYoloMode:    geminiYoloMode,
-		GeminiModel:       geminiModel,
-		OpenCodeSessionID: openCodeSessionID,
-		CodexSessionID:    codexSessionID,
-		LatestPrompt:      latestPrompt,
-		Notes:             notes,
-		LoadedMCPNames:    loadedMCPNames,
-		ToolOptions:       toolOptionsJSON,
-		Sandbox:           sandboxJSON,
-		SandboxContainer:  sandboxContainer,
-		SSHHost:           sshHost,
-		SSHRemotePath:     sshRemotePath,
-		MultiRepoEnabled:  multiRepoEnabled,
-		AdditionalPaths:   additionalPaths,
-		MultiRepoTempDir:  multiRepoTempDir,
+		ClaudeSessionID:    claudeSessionID,
+		GeminiSessionID:    geminiSessionID,
+		GeminiYoloMode:     geminiYoloMode,
+		GeminiModel:        geminiModel,
+		OpenCodeSessionID:  openCodeSessionID,
+		CodexSessionID:     codexSessionID,
+		CodeBuddySessionID: codeBuddySessionID,
+		LatestPrompt:       latestPrompt,
+		Notes:              notes,
+		LoadedMCPNames:     loadedMCPNames,
+		ToolOptions:        toolOptionsJSON,
+		Sandbox:            sandboxJSON,
+		SandboxContainer:   sandboxContainer,
+		SSHHost:            sshHost,
+		SSHRemotePath:      sshRemotePath,
+		MultiRepoEnabled:   multiRepoEnabled,
+		AdditionalPaths:    additionalPaths,
+		MultiRepoTempDir:   multiRepoTempDir,
 	}
 	for _, wt := range multiRepoWorktrees {
 		td.MultiRepoWorktrees = append(td.MultiRepoWorktrees, multiRepoWorktreeBlob(wt))
@@ -251,6 +258,9 @@ func MarshalToolData(
 	if !codexDetectedAt.IsZero() {
 		td.CodexDetectedAt = codexDetectedAt.Unix()
 	}
+	if !codeBuddyDetectedAt.IsZero() {
+		td.CodeBuddyDetectedAt = codeBuddyDetectedAt.Unix()
+	}
 	data, _ := json.Marshal(td)
 	return data
 }
@@ -263,6 +273,7 @@ func UnmarshalToolData(data json.RawMessage) (
 	geminiYoloMode *bool, geminiModel string,
 	openCodeSessionID string, openCodeDetectedAt time.Time,
 	codexSessionID string, codexDetectedAt time.Time,
+	codeBuddySessionID string, codeBuddyDetectedAt time.Time,
 	latestPrompt string, notes string, loadedMCPNames []string,
 	toolOptionsJSON json.RawMessage,
 	sandboxJSON json.RawMessage, sandboxContainer string,
@@ -294,6 +305,10 @@ func UnmarshalToolData(data json.RawMessage) (
 	codexSessionID = td.CodexSessionID
 	if td.CodexDetectedAt > 0 {
 		codexDetectedAt = time.Unix(td.CodexDetectedAt, 0)
+	}
+	codeBuddySessionID = td.CodeBuddySessionID
+	if td.CodeBuddyDetectedAt > 0 {
+		codeBuddyDetectedAt = time.Unix(td.CodeBuddyDetectedAt, 0)
 	}
 	latestPrompt = td.LatestPrompt
 	notes = td.Notes

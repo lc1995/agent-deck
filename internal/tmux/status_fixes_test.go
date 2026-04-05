@@ -1404,3 +1404,203 @@ func TestBusyPatternRegex_CatchesMidDotAndAsterisk(t *testing.T) {
 		})
 	}
 }
+
+// =============================================================================
+// VALIDATION: CodeBuddy Status Detection Integration
+// =============================================================================
+func TestCodeBuddyStatusDetection(t *testing.T) {
+	// Test that codebuddy sessions get the right patterns applied
+	sess := NewSession("test-codebuddy", "/tmp")
+	sess.Command = "codebuddy"
+
+	// Verify tool detection from command works
+	tool := detectToolFromCommand(sess.Command)
+	if tool != "codebuddy" {
+		t.Errorf("detectToolFromCommand('codebuddy') = %s, want 'codebuddy'", tool)
+	}
+
+	// Test that default patterns are returned for codebuddy
+	patterns := defaultResolvedPatternsForTool("codebuddy")
+	if patterns == nil {
+		t.Fatal("defaultResolvedPatternsForTool('codebuddy') returned nil")
+	}
+
+	// Verify prompt patterns exist
+	if len(patterns.PromptStrings) == 0 {
+		t.Error("No prompt strings configured for codebuddy")
+	}
+
+	// Test prompt detection using the full path (like GetStatus does)
+	tool = inferToolFromSessionFields(sess.detectedTool, sess.customToolName, sess.Command)
+	if tool != "codebuddy" {
+		t.Errorf("inferToolFromSessionFields = %s, want 'codebuddy'", tool)
+	}
+
+	detector := NewPromptDetector(tool)
+
+	// Test waiting state content
+	waitingContent := "Some previous output\n\n> "
+	if !detector.HasPrompt(waitingContent) {
+		t.Error("HasPrompt should return true for '> ' prompt")
+	}
+
+	// Test busy state content
+	busyContent := "Thinking about your request..."
+	if detector.HasPrompt(busyContent) {
+		t.Error("HasPrompt should return false when busy indicators present")
+	}
+}
+
+// =============================================================================
+// VALIDATION: CodeBuddy Patterns Configuration
+// =============================================================================
+func TestDefaultRawPatterns_CodeBuddy(t *testing.T) {
+	raw := DefaultRawPatterns("codebuddy")
+	if raw == nil {
+		t.Fatal("DefaultRawPatterns('codebuddy') returned nil")
+	}
+
+	// Verify busy patterns (core patterns - we now also have "analyzing")
+	expectedBusy := []string{"thinking", "generating", "processing", "analyzing"}
+	for _, pattern := range expectedBusy {
+		found := false
+		for _, p := range raw.BusyPatterns {
+			if p == pattern {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("BusyPatterns missing: %s", pattern)
+		}
+	}
+
+	// Verify prompt patterns (core patterns - we now also have permission dialog patterns)
+	expectedPrompts := []string{"> ", "codebuddy>", "Kimi", "Confirm", "Yes", "No", "Allow", "Deny"}
+	for _, pattern := range expectedPrompts {
+		found := false
+		for _, p := range raw.PromptPatterns {
+			if p == pattern {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("PromptPatterns missing: %s", pattern)
+		}
+	}
+
+	// Verify compilation works
+	resolved, err := CompilePatterns(raw)
+	if err != nil {
+		t.Fatalf("CompilePatterns failed: %v", err)
+	}
+	if resolved == nil {
+		t.Fatal("CompilePatterns returned nil")
+	}
+
+	// Test that patterns actually match
+	testContent := "> "
+	found := false
+	for _, s := range resolved.PromptStrings {
+		if strings.Contains(strings.ToLower(testContent), strings.ToLower(s)) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("Prompt pattern '> ' did not match test content")
+	}
+}
+
+// =============================================================================
+// VALIDATION: CodeBuddy Prompt Detection
+// =============================================================================
+func TestCodeBuddyPromptDetection(t *testing.T) {
+	detector := NewPromptDetector("codebuddy")
+
+	tests := []struct {
+		name       string
+		content    string
+		wantPrompt bool
+	}{
+		// === WAITING states: HasPrompt must return true ===
+		{
+			name:       "waiting - simple > prompt",
+			content:    "Some previous output\n\n>",
+			wantPrompt: true,
+		},
+		{
+			name:       "waiting - > with trailing space",
+			content:    "Some previous output\n\n> ",
+			wantPrompt: true,
+		},
+		{
+			name:       "waiting - user typing after prompt",
+			content:    "Some previous output\n\n> hello world",
+			wantPrompt: true,
+		},
+		{
+			name:       "waiting - contains Kimi",
+			content:    "Kimi is ready\n\n> ",
+			wantPrompt: true,
+		},
+		// === PERMISSION/CONFIRMATION dialogs: HasPrompt must return true ===
+		{
+			name:       "waiting - Confirm dialog",
+			content:    "Some previous output\n\nConfirm this action?\n[Yes] [No]",
+			wantPrompt: true,
+		},
+		{
+			name:       "waiting - Yes/No options",
+			content:    "Would you like to proceed?\n\n> Yes\n  No",
+			wantPrompt: true,
+		},
+		{
+			name:       "waiting - Allow/Deny permission",
+			content:    "Permission request:\n\nAllow this action?\n\n> Allow\n  Deny",
+			wantPrompt: true,
+		},
+		{
+			name:       "waiting - ❯ Yes selection indicator",
+			content:    "Confirm:\n\n❯ Yes\n  No",
+			wantPrompt: true,
+		},
+		{
+			name:       "waiting - Action Required",
+			content:    "Some output\n\nAction Required\nPlease confirm to continue",
+			wantPrompt: true,
+		},
+		// === BUSY states: HasPrompt must return false ===
+		{
+			name:       "busy - thinking indicator",
+			content:    "Some output\n\n> thinking about your request...",
+			wantPrompt: false,
+		},
+		{
+			name:       "busy - generating",
+			content:    "Some output\n\nGenerating response...",
+			wantPrompt: false,
+		},
+		{
+			name:       "busy - processing",
+			content:    "Some output\n\nProcessing your input...",
+			wantPrompt: false,
+		},
+		// === IDLE states: no prompt pattern ===
+		{
+			name:       "idle - no prompt visible",
+			content:    "Some output\n\nMore output here",
+			wantPrompt: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := detector.HasPrompt(tt.content)
+			if got != tt.wantPrompt {
+				t.Errorf("HasPrompt() = %v, want %v\nContent:\n%s", got, tt.wantPrompt, tt.content)
+			}
+		})
+	}
+}

@@ -18,6 +18,7 @@ func TestMarshalUnmarshalToolData_MultiRepo(t *testing.T) {
 		"", time.Time{}, nil, "", // gemini
 		"", time.Time{}, // opencode
 		"", time.Time{}, // codex
+		"", time.Time{}, // codebuddy
 		"", "", nil, nil, // prompt, notes, mcps, toolopts
 		nil, "", // sandbox
 		"", "", // ssh
@@ -25,7 +26,7 @@ func TestMarshalUnmarshalToolData_MultiRepo(t *testing.T) {
 		"/tmp/agent-deck-sessions/abc", worktrees,
 	)
 
-	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,
+	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,
 		mrEnabled, addPaths, mrTempDir, mrWorktrees := UnmarshalToolData(data)
 
 	assert.True(t, mrEnabled)
@@ -44,13 +45,14 @@ func TestMarshalUnmarshalToolData_NoMultiRepo(t *testing.T) {
 		"", time.Time{}, nil, "",
 		"", time.Time{},
 		"", time.Time{},
+		"", time.Time{}, // codebuddy
 		"prompt", "notes", []string{"mcp1"}, nil,
 		nil, "",
 		"", "",
 		false, nil, "", nil,
 	)
 
-	claudeSID, _, _, _, _, _, _, _, _, _, prompt, notes, mcps, _, _, _, _, _,
+	claudeSID, _, _, _, _, _, _, _, _, _, _, _, prompt, notes, mcps, _, _, _, _, _,
 		mrEnabled, addPaths, mrTempDir, mrWorktrees := UnmarshalToolData(data)
 
 	assert.Equal(t, "claude-123", claudeSID)
